@@ -11,7 +11,7 @@ repository = "https://github.com/pramberg/bevy_renderdoc"
 
 [dependencies]
 bevy = { version = "0.15", default-features = false, features = ["bevy_render"] }
-renderdoc = "0.12"
+renderdoc = { git = "https://github.com/eira-fransham/renderdoc-rs.git" }
 sysinfo = "0.24.6"
 
 [dev-dependencies]
