@@ -61,11 +61,12 @@ pub type RenderDocResource = RenderDoc<RenderDocVersion>;
 pub struct RenderDocPlugin;
 impl Plugin for RenderDocPlugin {
     fn build(&self, app: &mut App) {
-        let has_invalid_setup = app.world.contains_resource::<RenderDevice>()
-            || app.world.contains_resource::<Windows>();
+        let has_invalid_setup = app.world().contains_resource::<RenderDevice>();
 
         if has_invalid_setup {
-            app.add_startup_system(|| {
+            app.add_systems(
+                Startup,
+                || {
                 error!("RenderDocPlugin needs to be added before RenderPlugin!");
             });
             return;
@@ -76,19 +77,19 @@ impl Plugin for RenderDocPlugin {
                 rd.set_log_file_path_template("renderdoc/bevy_capture");
                 rd.mask_overlay_bits(OverlayBits::NONE, OverlayBits::NONE);
 
-                app.world.insert_non_send_resource(rd);
-                app.add_startup_system(|| info!("Initialized RenderDoc successfully!"));
-                app.add_system(trigger_capture);
+                app.world_mut().insert_non_send_resource(rd);
+                app.add_systems(Startup, || info!("Initialized RenderDoc successfully!"));
+                app.add_systems(Update, trigger_capture);
             }
             Err(e) => {
-                app.add_startup_system(move || error!("Failed to initialize RenderDoc. Ensure RenderDoc is installed and visible from your $PATH. Error: \"{}\"", e));
+                app.add_systems(Startup, move || error!("Failed to initialize RenderDoc. Ensure RenderDoc is installed and visible from your $PATH. Error: \"{}\"", e));
             }
         }
     }
 }
 
 fn trigger_capture(
-    key: Option<Res<Input<KeyCode>>>,
+    key: Option<Res<ButtonInput<KeyCode>>>,
     rd: NonSend<RenderDocResource>,
     mut replay_pid: Local<usize>,
     mut system: Local<sysinfo::System>,
@@ -102,7 +103,7 @@ fn trigger_capture(
     if key.unwrap().just_pressed(KeyCode::F12) {
         // Avoid launching multiple instances of the replay ui
         if system
-            .refresh_process_specifics(Pid::from(*replay_pid), ProcessRefreshKind::new().with_cpu())
+            .refresh_process_specifics(Pid::from(*replay_pid as i32), ProcessRefreshKind::new().with_cpu())
         {
             return;
         }
